@@ -1,4 +1,4 @@
-package net.brunel.nodes;
+package net.brunel.nodes.exceptions;
 
 public class InputException extends Exception {
 

@@ -1,5 +1,7 @@
 package net.brunel.nodes;
 
+import net.brunel.nodes.exceptions.InputException;
+
 public interface Node {
 
 	double computeOutput(double[] input) throws InputException;

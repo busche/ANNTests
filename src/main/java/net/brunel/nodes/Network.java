@@ -5,6 +5,10 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import net.brunel.nodes.exceptions.InputDimensionMismatchException;
+import net.brunel.nodes.exceptions.InputException;
+import net.brunel.nodes.exceptions.NetworkLayerException;
+
 public class Network {
 
 	private static class InputNode implements Node {

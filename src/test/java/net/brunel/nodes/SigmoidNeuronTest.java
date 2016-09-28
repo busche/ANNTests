@@ -5,6 +5,9 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.brunel.nodes.exceptions.InputDimensionMismatchException;
+import net.brunel.nodes.exceptions.InputException;
+
 public class SigmoidNeuronTest {
 
 	@Before

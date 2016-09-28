@@ -1,5 +1,8 @@
 package net.brunel.nodes;
 
+import net.brunel.nodes.exceptions.InputDimensionMismatchException;
+import net.brunel.nodes.exceptions.InputException;
+
 public class SigmoidNeuron implements Node {
 
 	private static final int INITIALIZATION_MINIMUM = -1;

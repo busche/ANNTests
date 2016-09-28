@@ -8,6 +8,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.brunel.nodes.exceptions.InputDimensionMismatchException;
+import net.brunel.nodes.exceptions.InputException;
+
 public class NetworkTest {
 
 	@Before
