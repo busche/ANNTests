@@ -3,7 +3,7 @@ package net.brunel.nodes;
 import net.brunel.nodes.exceptions.InputDimensionMismatchException;
 import net.brunel.nodes.exceptions.InputException;
 
-public class SigmoidNeuron implements Node {
+public class SigmoidNeuron implements Node, Function {
 
 	private static final int INITIALIZATION_MINIMUM = -1;
 	private static final int INITIALIZATION_MAXIMUM = 1;
@@ -29,20 +29,12 @@ public class SigmoidNeuron implements Node {
 
 		double dotProduct = MyMath.dotProduct(weights, input);
 
-		return MyMath.sigmoid(dotProduct + bias);
+		return computeAt(dotProduct + bias);
 	}
 
 	@Override
 	public double getWeightFromInput(int c) {
 		return weights[c];
-	}
-
-	@Override
-	public double computeDerivative(double[] input, int dimension) {
-		double dotProduct = MyMath.dotProduct(weights, input);
-		double z = dotProduct + bias;
-
-		return MyMath.sigmoid(z)*(1-MyMath.sigmoid(z));
 	}
 
 	@Override
@@ -63,6 +55,21 @@ public class SigmoidNeuron implements Node {
 	@Override
 	public void updateB(double learningRate, double gradientValue) {
 		bias -= learningRate*gradientValue;
+	}
+
+	@Override
+	public Function getFunction() {
+		return this;
+	}
+
+	@Override
+	public double computeDerivative(double v) {
+		return MyMath.sigmoid(v)*(1-MyMath.sigmoid(v));
+	}
+
+	@Override
+	public double computeAt(double v) {
+		return MyMath.sigmoid(v);
 	}
 
 }

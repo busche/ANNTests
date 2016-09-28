@@ -11,7 +11,7 @@ import net.brunel.nodes.exceptions.NetworkLayerException;
 
 public class Network {
 
-	private static class InputNode implements Node {
+	private static class InputNode implements Node, Function {
 
 		private double value;
 
@@ -27,11 +27,6 @@ public class Network {
 		@Override
 		public double getWeightFromInput(int c) {
 			return 1;
-		}
-
-		@Override
-		public double computeDerivative(double[] instanceData, int dimension) {
-			return 0;
 		}
 
 		@Override
@@ -54,6 +49,21 @@ public class Network {
 			//noop
 		}
 
+		@Override
+		public Function getFunction() {
+			return this;
+		}
+
+		@Override
+		public double computeDerivative(double z_l_L) {
+			return 0;
+		}
+
+		@Override
+		public double computeAt(double z_j_L) {
+			return z_j_L;
+		}
+
 	}
 
 	private final int numberOfLayers;
@@ -73,6 +83,7 @@ public class Network {
 	 * indexed by [layer][node]
 	 */
 	private double[][] errors;
+	private LossFunction lossFunction;
 
 	private void debug(String string) {
 		if (debugOn)
@@ -87,6 +98,7 @@ public class Network {
 		activations = new double[this.numberOfLayers][];
 		activations[0] = new double[inputDimension];
 		errors = new double[this.numberOfLayers][];
+		lossFunction = (a,b) -> {return a-b;};
 		
 		Node[] inputLayer = new Node[inputDimension];
 		for (int i = 0; i < inputDimension; i++)
@@ -247,7 +259,7 @@ public class Network {
 		}
 	}
 	
-	private void backpropagate(double[] y) {
+	private void backpropagate(double[] y) throws InputException {
 		
 		computeErrorsOfLastLayer(y);
 
@@ -266,14 +278,20 @@ public class Network {
 				
 			initErrorArrayAtIndex(currentLayerIdx);
 	
+			// for each node in the current layer ...
 			for (int j = 0; j < currentLayer.length; j++) {
+				// ... compute the error based on the derivative of the current node (z_l_L) and 
+				// the errorContribution this node makes at sucessive layers 
+				
 				// right part
 				double z_l_L =0;
 				Node currentNode = currentLayer[j];
-				for (int k = 0; k < previousLayer.length; k++)
-					z_l_L += currentNode.w(k)*activations[previousLayerIdx][k];
-				z_l_L += currentNode.b();
-				
+//				for (int k = 0; k < previousLayer.length; k++)
+//					// weight input to the previous layer times its activation value
+//					z_l_L += currentNode.w(k)*activations[previousLayerIdx][k];
+//				z_l_L += currentNode.b();
+				currentNode.computeOutput(activations[previousLayerIdx]);
+						
 				// left part
 				double errorContribution = 0;
 				Node[] nextLayersNodes = nodesList.get(Integer.valueOf(nextLayerIdx));
@@ -282,7 +300,7 @@ public class Network {
 					double e = errors[nextLayerIdx][n];
 					errorContribution += w*e;
 				}
-				errors[currentLayerIdx][j] = z_l_L*errorContribution;
+				errors[currentLayerIdx][j] = currentNode.getFunction().computeDerivative(z_l_L)*errorContribution;
 				debug("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
 			}
 		}
@@ -304,24 +322,25 @@ public class Network {
 		}
 	}
 	
-	private void computeErrorsOfLastLayer(double[] y) {
+	private void computeErrorsOfLastLayer(double[] y) throws InputException {
 		int currentLayerIdx = numberOfLayers-1;
 		int previousLayerIdx = numberOfLayers-2;
 		Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
-		Node[] previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
 		
 		initErrorArrayAtIndex(currentLayerIdx);
 
 		for (int j = 0; j < currentLayer.length; j++) {
 			double z_j_L =0;
+
 			Node currentNode = currentLayer[j];
-			for (int k = 0; k < previousLayer.length; k++)
-				z_j_L += currentNode.w(k)*activations[previousLayerIdx][k];
-			z_j_L += currentNode.b();
+//			for (int k = 0; k < previousLayer.length; k++)
+//				z_j_L += currentNode.w(k)*activations[previousLayerIdx][k];
+//			z_j_L += currentNode.b();
+			z_j_L = currentNode.computeOutput(activations[previousLayerIdx]);
 			
-			double sigmoidPrime = MyMath.sigmoid(z_j_L)*(1-MyMath.sigmoid(z_j_L));
-			double a_j_L = MyMath.sigmoid(z_j_L);
-			double deltaC_vs_deltaA_j_L = (a_j_L - y[j]);
+			double sigmoidPrime = currentNode.getFunction().computeDerivative(z_j_L);
+			double a_j_L =  currentNode.getFunction().computeAt(z_j_L);
+			double deltaC_vs_deltaA_j_L = lossFunction.computeLoss(a_j_L, y[j]);
 			double error = deltaC_vs_deltaA_j_L*sigmoidPrime;
 			errors[currentLayerIdx][j] = error;
 		}

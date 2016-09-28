@@ -13,8 +13,6 @@ public interface Node {
 	 */
 	double getWeightFromInput(int c);
 
-	double computeDerivative(double[] instanceData, int dimension);
-
 	double w(int k);
 
 	double b();
@@ -22,5 +20,7 @@ public interface Node {
 	void updateW(double learningRate, int dimension, double gradientValue);
 
 	void updateB(double learningRate, double gradientValue);
+
+	Function getFunction();
 
 }
