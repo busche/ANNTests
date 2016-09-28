@@ -254,19 +254,17 @@ public class Network {
 		// propagate errors backward
 		int currentLayerIdx = numberOfLayers-1;
 		int previousLayerIdx = numberOfLayers-2;
-		Node[] currentLayer;
-		Node[] previousLayer;
-
+		
 		while (currentLayerIdx>1)
 		{
 			currentLayerIdx=previousLayerIdx;
 			previousLayerIdx = currentLayerIdx-1;
 			int nextLayerIdx = currentLayerIdx+1;
 			
-			currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
-			previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
+			Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
+			Node[] previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
 				
-			errors[currentLayerIdx] = new double[currentLayer.length];
+			initErrorArrayAtIndex(currentLayerIdx);
 	
 			for (int j = 0; j < currentLayer.length; j++) {
 				// right part
@@ -289,6 +287,22 @@ public class Network {
 			}
 		}
 	}
+
+	private void initErrorArrayAtIndex(int currentLayerIdx) {
+		Node[] currentNodes = nodesList.get(Integer.valueOf(currentLayerIdx));
+
+		if (errors[currentLayerIdx] != null) {
+			if (errors[currentLayerIdx].length == currentNodes.length) {
+				// all fine.
+			} else {
+				errors[currentLayerIdx] = null;
+				System.gc();
+				errors[currentLayerIdx] = new double[currentNodes.length];
+			}
+		} else {
+			errors[currentLayerIdx] = new double[currentNodes.length];
+		}
+	}
 	
 	private void computeErrorsOfLastLayer(double[] y) {
 		int currentLayerIdx = numberOfLayers-1;
@@ -296,17 +310,7 @@ public class Network {
 		Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
 		Node[] previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
 		
-		if (errors[currentLayerIdx] != null) {
-			if (errors[currentLayerIdx].length == currentLayer.length) {
-				// all fine.
-			} else {
-				errors[currentLayerIdx]=null;
-				System.gc();
-				errors[currentLayerIdx] = new double[currentLayer.length];
-			}
-		} else {
-			errors[currentLayerIdx] = new double[currentLayer.length];
-		}
+		initErrorArrayAtIndex(currentLayerIdx);
 
 		for (int j = 0; j < currentLayer.length; j++) {
 			double z_j_L =0;
