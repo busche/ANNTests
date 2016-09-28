@@ -290,7 +290,7 @@ public class Network {
 //					// weight input to the previous layer times its activation value
 //					z_l_L += currentNode.w(k)*activations[previousLayerIdx][k];
 //				z_l_L += currentNode.b();
-				currentNode.computeOutput(activations[previousLayerIdx]);
+				z_l_L = currentNode.computeOutput(activations[previousLayerIdx]);
 						
 				// left part
 				double errorContribution = 0;
