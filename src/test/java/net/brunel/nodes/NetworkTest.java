@@ -90,6 +90,7 @@ public class NetworkTest {
 	public void testTrainingOneLayer() throws InputException {
 		Network n = new Network(2, 1); // 2 input dimensions, one layer
 		n.setLearningRate(0.1);
+//		n.setDebugOn(true);
 		n.configureLayer(1, new SigmoidNeuron[] { 
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-2,-1,2})),
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,1,0,2})),
@@ -99,8 +100,10 @@ public class NetworkTest {
 		double[] label = new double[]{ 1, 0 };
 		double[] classification = n.feedForward(instance);
 		int i = 0; 
-		while (i++ < 1000) {
+		while (i++ < 30) {
 			n.train(instance, label);
+//			classification = n.feedForward(instance);
+//			System.out.println("Iteration " + i + " Classification: " + Arrays.toString(classification));
 		}
 		classification = n.feedForward(instance);
 		assertArrayEquals(label, classification, 0.05);
@@ -131,11 +134,12 @@ public class NetworkTest {
 		double[] label = new double[]{ 1};
 		double[] classification = n.feedForward(instance);
 		int i = 0; 
-		while (i++ < 1000) {
+		while (i++ < 50) {
 			n.train(instance, label);
+
 		}
 		classification = n.feedForward(instance);
-		assertArrayEquals(label, classification, 0.05);
+		assertArrayEquals(label, classification, 0.02);
 		System.setOut(oldPrintStream);
 		discardPrintStream.close();
 	}
