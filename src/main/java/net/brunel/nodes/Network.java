@@ -67,11 +67,10 @@ public class Network {
 	 * indexed by [layer][node]
 	 */
 	private double[][] activations;
-	/**
-	 * indexed by [layer][node]
-	 */
-	private double[][] bias;
-
+	private void debug(String string) {
+		if (debugOn)
+			System.out.println(string);
+	}
 	public Network(int inputDimension, int numberOfLayers) {
 		this.numberOfInputs = inputDimension;
 		this.numberOfLayers = numberOfLayers+1;
@@ -114,8 +113,7 @@ public class Network {
 		if (numberOfInputs!=input.length)
 			throw new InputDimensionMismatchException(numberOfInputs, input.length);
 		
-		if (debugOn)
-			System.out.println("layer 0        Output: " + Arrays.toString(input));
+		debug("layer 0        Output: " + Arrays.toString(input));
 
 		for (int i = 0; i < input.length; i++) {
 			activations[0][i]=input[i];
@@ -123,8 +121,7 @@ public class Network {
 				
 		// iterate through the layer
 		for (int l = 1; l < numberOfLayers; l++) {
-			if (debugOn)
-				System.out.println("layer " + (l) + "        Input:  " + Arrays.toString(activations[l-1]));
+			debug("layer " + (l) + "        Input:  " + Arrays.toString(activations[l-1]));
 
 			Node[] currentLayer = nodesList.get(Integer.valueOf(l));
 			
@@ -132,18 +129,15 @@ public class Network {
 			for (int j = 0; j < currentLayer.length; j++) {
 				activations[l][j] = currentLayer[j].computeOutput(activations[l-1]);
 			}
-			if (debugOn)
-				System.out.println("layer " + (l) + "        output: " + Arrays.toString(activations[l]));
+			debug("layer " + (l) + "        output: " + Arrays.toString(activations[l]));
 		}
-		if (debugOn)
-			System.out.println("output layer, output:  " + Arrays.toString(activations[activations.length-1]));
+		debug("output layer, output:  " + Arrays.toString(activations[activations.length-1]));
 		
 		if (computeDotGraph) {
 			computeDotGraph(activations);
 		}
 		return activations[activations.length-1];		
 	}
-
 
 	private void computeDotGraph(double[][] temporaryValues) {
 		StringBuffer sb = new StringBuffer();
@@ -174,10 +168,8 @@ public class Network {
 		sb.append("");			}
 		sb.append("}");
 		
-		System.out.println(sb.toString());
-		
+		System.out.println(sb.toString());		
 	}
-
 
 	private String computeNodeName(int layer, int nodeIdx) {
 		return "nl" + layer + "n" + nodeIdx;
@@ -214,10 +206,10 @@ public class Network {
 		double[] classificationError = new double[y.length];
 		for (int i = 0; i < y.length; i++)
 			classificationError[i] = classificationResult[i] - y[i];
-		if (debugOn) {
-			System.out.println("Initial classification:       " + Arrays.toString(classificationResult));
-			System.out.println("Initial classification error: " + Arrays.toString(classificationError));
-		}
+		
+		debug("Initial classification:       " + Arrays.toString(classificationResult));
+		debug("Initial classification error: " + Arrays.toString(classificationError));
+		
 
 		int currentLayerIdx = numberOfLayers-1;
 		int previousLayerIdx = numberOfLayers-2;
@@ -269,8 +261,7 @@ public class Network {
 					errorContribution += w*e;
 				}
 				errors[currentLayerIdx][j] = z_l_L*errorContribution;
-				if (debugOn)
-					System.out.println("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
+				debug("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
 			}
 		}
 		
@@ -282,24 +273,20 @@ public class Network {
 			for (int j = 0; j < currentNodes.length; j++) {
 
 				double delta_b_j_l = errors[l][j];
-				if (debugOn)
-					System.out.println("Layer " + l + ", Node " + j + ", delta_b_j_l=" + delta_b_j_l);
+				debug("Layer " + l + ", Node " + j + ", delta_b_j_l=" + delta_b_j_l);
+				
 				currentNodes[j].updateB(learningRate, delta_b_j_l);
 				
 				for (int k = 0; k < previousNodes.length; k++) {
 					double delta_w_j_k_l = activations[l-1][k] * errors[l][j];
-					if (debugOn)
-						System.out.println("Layer " + l + ", Node " + k + ", delta_w_j_k_l=" + delta_w_j_k_l);
+					debug("Layer " + l + ", Node " + k + ", delta_w_j_k_l=" + delta_w_j_k_l);
 					currentNodes[j].updateW(learningRate, k, delta_w_j_k_l);
 				}
 				
 			}
 		}
 		
-		if (debugOn)
-
-		System.out.println("Errors:      " + Arrays.deepToString(errors));
-//		System.out.println("Derivatives: " + Arrays.deepToString(derivatives));
+		debug("Errors:      " + Arrays.deepToString(errors));
 	}
 
 }
