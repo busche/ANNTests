@@ -2,6 +2,7 @@ package net.brunel.nodes;
 
 import static org.junit.Assert.*;
 
+import java.io.PrintStream;
 import java.util.Arrays;
 
 import org.junit.After;
@@ -10,6 +11,7 @@ import org.junit.Test;
 
 import net.brunel.nodes.exceptions.InputDimensionMismatchException;
 import net.brunel.nodes.exceptions.InputException;
+import net.brunel.nodes.exceptions.NetworkLayerException;
 
 public class NetworkTest {
 
@@ -92,8 +94,6 @@ public class NetworkTest {
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-2,-1,2})),
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,1,0,2})),
 				});
-//		n.setDebugOn(true);
-//		n.setComputeDotGraph(true);
 		n.setLearningRate(1);
 		double[] instance = new double[]{ 1, 1 };
 		double[] label = new double[]{ 1, 0 };
@@ -104,14 +104,21 @@ public class NetworkTest {
 		}
 		classification = n.feedForward(instance);
 		assertArrayEquals(label, classification, 0.05);
-		
-//		assertArrayEquals(new double[] { 0.5, 0.5 }, label, 0.01);
-		
 	}
+
 	@Test
 	public void testTrainingTwoLayers() throws InputException {
 		Network n = new Network(2, 2); // 2 input dimensions, one layer
-		n.setLearningRate(0.1);
+		PrintStream oldPrintStream = System.out;
+		// reset printstream to discard all output
+		PrintStream discardPrintStream = new PrintStream(new DiscardOutputStream());
+		System.setOut(discardPrintStream);
+		n.setDebugOn(true);
+		assertEquals(true, n.isDebugOn());
+		n.setComputeDotGraph(true);
+		assertEquals(true, n.isComputeDotGraph());
+		n.setLearningRate(1);
+
 		n.configureLayer(1, new SigmoidNeuron[] { 
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-2,-1,2})),
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,1,0,2})),
@@ -119,8 +126,6 @@ public class NetworkTest {
 		n.configureLayer(2, new SigmoidNeuron[] { 
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-2,-1,2})),
 				});
-//		n.setDebugOn(true);
-//		n.setComputeDotGraph(true);
 		n.setLearningRate(1);
 		double[] instance = new double[]{ 1, 1 };
 		double[] label = new double[]{ 1};
@@ -131,9 +136,22 @@ public class NetworkTest {
 		}
 		classification = n.feedForward(instance);
 		assertArrayEquals(label, classification, 0.05);
-		
-//		assertArrayEquals(new double[] { 0.5, 0.5 }, label, 0.01);
-		
+		System.setOut(oldPrintStream);
+		discardPrintStream.close();
 	}
+	
+	@Test(expected=NetworkLayerException.class)
+	public void testLayerConfigurationExcessive() throws NetworkLayerException {
+		Network n = new Network(1,1);
+		n.configureLayer(3, null);
+	}
+	
+	@Test(expected=NetworkLayerException.class)
+	public void testLayerConfigurationReconfiguration() throws NetworkLayerException {
+		Network n = new Network(1,1);
+		n.configureLayer(1, null);
+		n.configureLayer(1, null);
+	}
+	
 }
 
