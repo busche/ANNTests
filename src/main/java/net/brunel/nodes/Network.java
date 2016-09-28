@@ -63,10 +63,17 @@ public class Network {
 	private Map<Integer, Node[]> nodesList;
 	private boolean computeDotGraph;
 	private double learningRate;
+
 	/**
 	 * indexed by [layer][node]
 	 */
 	private double[][] activations;
+	
+	/**
+	 * indexed by [layer][node]
+	 */
+	private double[][] errors;
+
 	private void debug(String string) {
 		if (debugOn)
 			System.out.println(string);
@@ -76,10 +83,11 @@ public class Network {
 		this.numberOfLayers = numberOfLayers+1;
 		debugOn=false;
 		computeDotGraph=false;
-		nodesList = new HashMap<>(numberOfLayers);
-		activations = new double[numberOfLayers+1][];
+		nodesList = new HashMap<>(this.numberOfLayers);
+		activations = new double[this.numberOfLayers][];
 		activations[0] = new double[inputDimension];
-
+		errors = new double[this.numberOfLayers][];
+		
 		Node[] inputLayer = new Node[inputDimension];
 		for (int i = 0; i < inputDimension; i++)
 			inputLayer[i] = new InputNode(0);
@@ -199,9 +207,9 @@ public class Network {
 		this.learningRate = learningRate;
 	}
 
-
+	
 	public void train(double[] instanceData, double[] y) throws InputException {
-		double[][] errors = new double[numberOfLayers][];
+		
 		double[] classificationResult = feedForward(instanceData);
 		double[] classificationError = new double[y.length];
 		for (int i = 0; i < y.length; i++)
@@ -210,29 +218,45 @@ public class Network {
 		debug("Initial classification:       " + Arrays.toString(classificationResult));
 		debug("Initial classification error: " + Arrays.toString(classificationError));
 		
+		backpropagate(y);
+		
+		updateWeights();
+		
+		debug("Errors:      " + Arrays.deepToString(errors));
+	}
+	
+	private void updateWeights() {
+		for (int l = numberOfLayers-1; l > 0 /*exclude input layer*/; l--) {
+			Node[] currentNodes = nodesList.get(Integer.valueOf(l));
+			Node[] previousNodes = nodesList.get(Integer.valueOf(l-1));
+			
+			for (int j = 0; j < currentNodes.length; j++) {
 
+				double delta_b_j_l = errors[l][j];
+				debug("Layer " + l + ", Node " + j + ", delta_b_j_l=" + delta_b_j_l);
+				
+				currentNodes[j].updateB(learningRate, delta_b_j_l);
+				
+				for (int k = 0; k < previousNodes.length; k++) {
+					double delta_w_j_k_l = activations[l-1][k] * errors[l][j];
+					debug("Layer " + l + ", Node " + k + ", delta_w_j_k_l=" + delta_w_j_k_l);
+					currentNodes[j].updateW(learningRate, k, delta_w_j_k_l);
+				}
+				
+			}
+		}
+	}
+	
+	private void backpropagate(double[] y) {
+		
+		computeErrorsOfLastLayer(y);
+
+		// propagate errors backward
 		int currentLayerIdx = numberOfLayers-1;
 		int previousLayerIdx = numberOfLayers-2;
-		Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
-		Node[] previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
-		
-		errors[currentLayerIdx] = new double[currentLayer.length];
+		Node[] currentLayer;
+		Node[] previousLayer;
 
-		for (int j = 0; j < currentLayer.length; j++) {
-			double z_j_L =0;
-			Node currentNode = currentLayer[j];
-			for (int k = 0; k < previousLayer.length; k++)
-				z_j_L += currentNode.w(k)*activations[previousLayerIdx][k];
-			z_j_L += currentNode.b();
-			
-			double sigmoidPrime = MyMath.sigmoid(z_j_L)*(1-MyMath.sigmoid(z_j_L));
-			double a_j_L = MyMath.sigmoid(z_j_L);
-			double deltaC_vs_deltaA_j_L = (a_j_L - y[j]);
-			double error = deltaC_vs_deltaA_j_L*sigmoidPrime;
-			errors[currentLayerIdx][j] = error;
-		}
-		
-		// propagate errors backward
 		while (currentLayerIdx>1)
 		{
 			currentLayerIdx=previousLayerIdx;
@@ -264,29 +288,39 @@ public class Network {
 				debug("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
 			}
 		}
+	}
+	
+	private void computeErrorsOfLastLayer(double[] y) {
+		int currentLayerIdx = numberOfLayers-1;
+		int previousLayerIdx = numberOfLayers-2;
+		Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
+		Node[] previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
 		
-		// update weights
-		for (int l = numberOfLayers-1; l > 0 /*exclude input layer*/; l--) {
-			Node[] currentNodes = nodesList.get(Integer.valueOf(l));
-			Node[] previousNodes = nodesList.get(Integer.valueOf(l-1));
-			
-			for (int j = 0; j < currentNodes.length; j++) {
-
-				double delta_b_j_l = errors[l][j];
-				debug("Layer " + l + ", Node " + j + ", delta_b_j_l=" + delta_b_j_l);
-				
-				currentNodes[j].updateB(learningRate, delta_b_j_l);
-				
-				for (int k = 0; k < previousNodes.length; k++) {
-					double delta_w_j_k_l = activations[l-1][k] * errors[l][j];
-					debug("Layer " + l + ", Node " + k + ", delta_w_j_k_l=" + delta_w_j_k_l);
-					currentNodes[j].updateW(learningRate, k, delta_w_j_k_l);
-				}
-				
+		if (errors[currentLayerIdx] != null) {
+			if (errors[currentLayerIdx].length == currentLayer.length) {
+				// all fine.
+			} else {
+				errors[currentLayerIdx]=null;
+				System.gc();
+				errors[currentLayerIdx] = new double[currentLayer.length];
 			}
+		} else {
+			errors[currentLayerIdx] = new double[currentLayer.length];
 		}
-		
-		debug("Errors:      " + Arrays.deepToString(errors));
+
+		for (int j = 0; j < currentLayer.length; j++) {
+			double z_j_L =0;
+			Node currentNode = currentLayer[j];
+			for (int k = 0; k < previousLayer.length; k++)
+				z_j_L += currentNode.w(k)*activations[previousLayerIdx][k];
+			z_j_L += currentNode.b();
+			
+			double sigmoidPrime = MyMath.sigmoid(z_j_L)*(1-MyMath.sigmoid(z_j_L));
+			double a_j_L = MyMath.sigmoid(z_j_L);
+			double deltaC_vs_deltaA_j_L = (a_j_L - y[j]);
+			double error = deltaC_vs_deltaA_j_L*sigmoidPrime;
+			errors[currentLayerIdx][j] = error;
+		}
 	}
 
 }
