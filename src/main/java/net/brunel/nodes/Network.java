@@ -237,24 +237,28 @@ public class Network {
 		debug("Errors:      " + Arrays.deepToString(errors));
 	}
 	
+	/*
+	 * updates the weights in the overall network based on the individual error contributions
+	 * which are previously computed.
+	 */
 	private void updateWeights() {
-		for (int l = numberOfLayers-1; l > 0 /*exclude input layer*/; l--) {
+		for (int l = numberOfLayers - 1; l > 0 /* exclude input layer */; l--) {
 			Node[] currentNodes = nodesList.get(Integer.valueOf(l));
-			Node[] previousNodes = nodesList.get(Integer.valueOf(l-1));
-			
+			Node[] previousNodes = nodesList.get(Integer.valueOf(l - 1));
+
 			for (int j = 0; j < currentNodes.length; j++) {
 
 				double delta_b_j_l = errors[l][j];
 				debug("Layer " + l + ", Node " + j + ", delta_b_j_l=" + delta_b_j_l);
-				
+
 				currentNodes[j].updateB(learningRate, delta_b_j_l);
-				
+
 				for (int k = 0; k < previousNodes.length; k++) {
-					double delta_w_j_k_l = activations[l-1][k] * errors[l][j];
+					double delta_w_j_k_l = activations[l - 1][k] * errors[l][j];
 					debug("Layer " + l + ", Node " + k + ", delta_w_j_k_l=" + delta_w_j_k_l);
 					currentNodes[j].updateW(learningRate, k, delta_w_j_k_l);
 				}
-				
+
 			}
 		}
 	}
@@ -274,7 +278,6 @@ public class Network {
 			int nextLayerIdx = currentLayerIdx+1;
 			
 			Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
-			Node[] previousLayer = nodesList.get(Integer.valueOf(previousLayerIdx));
 				
 			initErrorArrayAtIndex(currentLayerIdx);
 	
@@ -284,23 +287,30 @@ public class Network {
 				// the errorContribution this node makes at sucessive layers 
 				
 				// right part
-				double z_l_L =0;
 				Node currentNode = currentLayer[j];
-//				for (int k = 0; k < previousLayer.length; k++)
-//					// weight input to the previous layer times its activation value
-//					z_l_L += currentNode.w(k)*activations[previousLayerIdx][k];
-//				z_l_L += currentNode.b();
-				z_l_L = currentNode.computeOutput(activations[previousLayerIdx]);
+				double z_l_L = currentNode.computeOutput(activations[previousLayerIdx]);
 						
 				// left part
 				double errorContribution = 0;
 				Node[] nextLayersNodes = nodesList.get(Integer.valueOf(nextLayerIdx));
+				
 				for (int n = 0; n < nextLayersNodes.length; n++) {
+					// the impact of this nodes output (the weight from this node to node n in the next layer
 					double w = nextLayersNodes[n].w(j);
+					// the error at node n in the next layer
 					double e = errors[nextLayerIdx][n];
+					/*
+					 * the errorContribution of this node is small if either our weight for the next layer is small,
+					 * or if the overall error at the successive layer is small. 
+					 */
 					errorContribution += w*e;
 				}
+				/*
+				 * we set "our" error to be the derivative of the current nodes activation times 
+				 * our errorContribution to the next layer
+				 */
 				errors[currentLayerIdx][j] = currentNode.getFunction().computeDerivative(z_l_L)*errorContribution;
+				
 				debug("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
 			}
 		}
