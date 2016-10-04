@@ -108,6 +108,7 @@ public class Network {
 	private LossFunction lossFunction;
 	private int learningRateIterationAmount = 100;
 	private double learningRateIterationDecay = 0.995;
+	private boolean intelligentLearningRate;
 
 	private void debug(String string) {
 		if (debugOn)
@@ -123,6 +124,7 @@ public class Network {
 		activations[0] = new double[inputDimension];
 		errors = new double[this.numberOfLayers][];
 		lossFunction = (a,b) -> {return a-b;};
+		intelligentLearningRate=false;
 		
 		Node[] inputLayer = new Node[inputDimension];
 		for (int i = 0; i < inputDimension; i++)
@@ -422,35 +424,41 @@ public class Network {
 //			e.printStackTrace();
 //		}
 		
-		double[] learningRates = new double[] {
-//				(10*learningRate) / (instances.length* 1),
-				learningRate / (instances.length* 1),
-//				learningRate / (instances.length* 25),
-				learningRate / (instances.length* 10),
-				learningRate / (instances.length* 100),
-//				learningRate / (instances.length* 1000),
-//				learningRate / (instances.length* 10000),
-		};
-		double[] localLearningRateErrors = new double[learningRates.length];
-		double minError = Double.MAX_VALUE;
-		double bestLearningRate = 0;
-		for (int i = 0; i < learningRates.length; i++) {
-			configureUpdate(learningRates[i]);
-			localLearningRateErrors[i] = computeError(instances, labels);
+		if (intelligentLearningRate) {
 			
-//			System.out.println("Error for i=" + i + ": " + localLearningRateErrors[i]);
-			if (localLearningRateErrors[i] < minError) {
-				minError=localLearningRateErrors[i];
-				bestLearningRate=learningRates[i];
+			
+			double[] learningRates = new double[] {
+	//				(10*learningRate) / (instances.length* 1),
+					learningRate / (instances.length* 1),
+	//				learningRate / (instances.length* 25),
+					learningRate / (instances.length* 10),
+					learningRate / (instances.length* 100),
+	//				learningRate / (instances.length* 1000),
+	//				learningRate / (instances.length* 10000),
+			};
+			double[] localLearningRateErrors = new double[learningRates.length];
+			double minError = Double.MAX_VALUE;
+			double bestLearningRate = 0;
+			for (int i = 0; i < learningRates.length; i++) {
+				configureUpdate(learningRates[i]);
+				localLearningRateErrors[i] = computeError(instances, labels);
+				
+	//			System.out.println("Error for i=" + i + ": " + localLearningRateErrors[i]);
+				if (localLearningRateErrors[i] < minError) {
+					minError=localLearningRateErrors[i];
+					bestLearningRate=learningRates[i];
+				}
 			}
-		}
-		System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
-		if (iterationErrorSum < minError) {
-			System.out.println("No way out! Cannot reduce error!");
-			resetUpdate();
-			throw new IterationException("Cannot reduce error any further!");
-		} else {
+			System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
+			if (iterationErrorSum < minError) {
+				System.out.println("No way out! Cannot reduce error!");
+				resetUpdate();
+				throw new IterationException("Cannot reduce error any further!");
+			} 
 			commitUpdate(bestLearningRate);
+		} else {
+			commitUpdate(learningRate);
+			
 		}
 	}
 	

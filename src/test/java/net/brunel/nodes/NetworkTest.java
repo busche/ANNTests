@@ -202,25 +202,25 @@ public class NetworkTest {
 //		n.setDebugOn(true);
 //		n.setComputeDotGraph(true);
 		n.configureLayer(1, new SigmoidNeuron[] { 
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.4,0.6,0.1})),
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.9,0.2,0.3})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,0,0})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {-1,-1,0})),
 				});
 		n.configureLayer(2, new SigmoidNeuron[] { 
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.3,0.1,0.4})),
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.3,-0.4,-0.1})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {2,-2,0})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {-1,1,0})),
 				});
 
 		double learningRate = 0.1;
 		n.setLearningRate(learningRate);
 		double[][] instances = new double[][] {
 			new double[]{ 1, 0 },
-			new double[]{ 1, 1 },
 			new double[]{ 0, 1 },
+			new double[]{ -1, -1 },
 //			new double[]{ 0, 1 },
 		};
 		double[][] labels = new double[][]{
 			new double[]{ 1,0 },
-			new double[]{ 0,1},
+			new double[]{ 1,0},
 			new double[]{ 0,1 },
 //			new double[]{ 1, -1 },
 		};
