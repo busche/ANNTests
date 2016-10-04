@@ -157,5 +157,120 @@ public class NetworkTest {
 		n.configureLayer(1, null);
 	}
 	
+	@Test
+	public void testBatchTrainingOneLayer() throws InputException {
+		Network n = new Network(2, 2); // 2 input dimensions, one layer
+//		n.setDebugOn(true);
+//		n.setComputeDotGraph(true);
+		n.configureLayer(1, new SigmoidNeuron[] { 
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,0,1})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0,1,-1})),
+				});
+		n.configureLayer(2, new SigmoidNeuron[] { 
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.3,0.7,0})),
+				});
+		double learningRate = 1;
+		n.setLearningRate(learningRate);
+		double[][] instances = new double[][] {
+			new double[]{ 1, 0 },
+			new double[]{ 1, 1 },
+			new double[]{ 2, 1 },
+//			new double[]{ 2, 1 },
+		};
+		double[][] labels = new double[][]{
+			new double[]{ 1 },
+			new double[]{ 0},
+			new double[]{ 1 },
+//			new double[]{ 1, -1 },
+		};
+		
+		n.setLearningRateMultiplier(100, 0.995);
+		n.trainBatch(instances, labels, 5000);
+		
+		double[] classification;
+		for (int j = 0; j < instances.length; j++) {
+//			classification = n.dumpDotGraph(instances[j], System.out);
+			classification = n.feedForward(instances[j]);
+			assertArrayEquals(labels[j], classification, 0.05);
+		}
+	}
+	
+
+	@Test
+	public void testBatchTrainingOneLayerTwoOutputs() throws InputException {
+		Network n = new Network(2, 2); // 2 input dimensions, one layer
+//		n.setDebugOn(true);
+//		n.setComputeDotGraph(true);
+		n.configureLayer(1, new SigmoidNeuron[] { 
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.4,0.6,0.1})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.9,0.2,0.3})),
+				});
+		n.configureLayer(2, new SigmoidNeuron[] { 
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.3,0.1,0.4})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0.3,-0.4,-0.1})),
+				});
+
+		double learningRate = 0.1;
+		n.setLearningRate(learningRate);
+		double[][] instances = new double[][] {
+			new double[]{ 1, 0 },
+			new double[]{ 1, 1 },
+			new double[]{ 0, 1 },
+//			new double[]{ 0, 1 },
+		};
+		double[][] labels = new double[][]{
+			new double[]{ 1,0 },
+			new double[]{ 0,1},
+			new double[]{ 0,1 },
+//			new double[]{ 1, -1 },
+		};
+		
+		int i = 0; 
+		double[] classification;
+		double previousError = 0;
+		n.setLearningRateMultiplier(10000, 1);
+		
+		while (i++ < 5000) {
+//			System.out.println("Iteration " + i);
+			try {
+				n.trainIterationBatch(instances, labels);
+			} catch (IterationException e) {
+				e.printStackTrace();
+				break;
+			}
+//			for (int j = 0; j < instances.length; j++)
+//				n.train(instances[j], labels[j]);
+			
+			if (i % 50 == 0) {
+				classification = n.feedForward(instances[0]);
+				System.out.print("Iteration " + i + " Classification 0: " + Arrays.toString(classification));
+				classification = n.feedForward(instances[1]);
+				System.out.print(" C 1: " + Arrays.toString(classification));
+				classification = n.feedForward(instances[2]);
+				System.out.print(" C 2: " + Arrays.toString(classification));
+				System.out.println();
+			}
+			
+			if (i % 500 == 0) {
+				System.out.println("Error at iteration " + i + ": " + n.computeError(instances, labels));
+			}
+
+		}
+		
+		classification = n.feedForward(instances[0]);
+		System.out.print("Iteration " + i + " Classification 0: " + Arrays.toString(classification));
+		classification = n.feedForward(instances[1]);
+		System.out.print(" C 1: " + Arrays.toString(classification));
+		classification = n.feedForward(instances[2]);
+		System.out.print(" C 2: " + Arrays.toString(classification));
+		System.out.println();
+
+		for (int j = 0; j < instances.length; j++) {
+//			classification = n.dumpDotGraph(instances[j], System.out);
+			classification = n.feedForward(instances[j]);
+			
+			assertArrayEquals(labels[j], classification, 0.05);
+		}
+	}
 }
 

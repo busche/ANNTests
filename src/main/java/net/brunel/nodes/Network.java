@@ -1,5 +1,7 @@
 package net.brunel.nodes;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -40,12 +42,12 @@ public class Network {
 		}
 
 		@Override
-		public void updateW(double learningRate, int dimension, double gradientValue) {
+		public void updateW(int dimension, double gradientValue) {
 			//noop
 		}
 
 		@Override
-		public void updateB(double learningRate, double gradientValue) {
+		public void updateB(double gradientValue) {
 			//noop
 		}
 
@@ -62,6 +64,26 @@ public class Network {
 		@Override
 		public double computeAt(double z_j_L) {
 			return z_j_L;
+		}
+
+		@Override
+		public void prepareUpdate() {
+		}
+
+		@Override
+		public void commitUpdate(double learningRate) {
+		}
+
+		@Override
+		public void configureUpdate(double d) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void resetUpdate() {
+			// TODO Auto-generated method stub
+			
 		}
 
 	}
@@ -84,6 +106,8 @@ public class Network {
 	 */
 	private double[][] errors;
 	private LossFunction lossFunction;
+	private int learningRateIterationAmount = 100;
+	private double learningRateIterationDecay = 0.995;
 
 	private void debug(String string) {
 		if (debugOn)
@@ -154,12 +178,17 @@ public class Network {
 		debug("output layer, output:  " + Arrays.toString(activations[activations.length-1]));
 		
 		if (computeDotGraph) {
-			computeDotGraph(activations);
+			computeDotGraph();
 		}
 		return activations[activations.length-1];		
 	}
 
-	private void computeDotGraph(double[][] temporaryValues) {
+	private void computeDotGraph() {
+		computeDotGraph(System.out);
+	}
+	
+	private void computeDotGraph(PrintStream out) {
+		double[][] temporaryValues=activations;
 		StringBuffer sb = new StringBuffer();
 		sb.append("digraph ANN {");
 		sb.append("graph [splines=true overlap=false labelangle=100]; ");
@@ -188,7 +217,7 @@ public class Network {
 		sb.append("");			}
 		sb.append("}");
 		
-		System.out.println(sb.toString());		
+		out.println(sb.toString());		
 	}
 
 	private String computeNodeName(int layer, int nodeIdx) {
@@ -221,6 +250,7 @@ public class Network {
 
 	
 	public void train(double[] instanceData, double[] y) throws InputException {
+		prepareUpdate();
 		
 		double[] classificationResult = feedForward(instanceData);
 		double[] classificationError = new double[y.length];
@@ -230,9 +260,13 @@ public class Network {
 		debug("Initial classification:       " + Arrays.toString(classificationResult));
 		debug("Initial classification error: " + Arrays.toString(classificationError));
 		
-		backpropagate(y);
+		computeErrorsOfLastLayer(y);
+
+		backpropagateError();
 		
 		updateWeights();
+		
+		commitUpdate(learningRate);
 		
 		debug("Errors:      " + Arrays.deepToString(errors));
 	}
@@ -251,22 +285,20 @@ public class Network {
 				double delta_b_j_l = errors[l][j];
 				debug("Layer " + l + ", Node " + j + ", delta_b_j_l=" + delta_b_j_l);
 
-				currentNodes[j].updateB(learningRate, delta_b_j_l);
+				currentNodes[j].updateB( delta_b_j_l);
 
 				for (int k = 0; k < previousNodes.length; k++) {
 					double delta_w_j_k_l = activations[l - 1][k] * errors[l][j];
-					debug("Layer " + l + ", Node " + k + ", delta_w_j_k_l=" + delta_w_j_k_l);
-					currentNodes[j].updateW(learningRate, k, delta_w_j_k_l);
+					debug("Layer " + l + ", Node " + k + ", delta_w_j_k_l=delta_w_" + j + "_" + k + "_" + l + "=" + delta_w_j_k_l);
+					currentNodes[j].updateW(k, delta_w_j_k_l);
 				}
 
 			}
 		}
 	}
 	
-	private void backpropagate(double[] y) throws InputException {
+	private void backpropagateError() throws InputException {
 		
-		computeErrorsOfLastLayer(y);
-
 		// propagate errors backward
 		int currentLayerIdx = numberOfLayers-1;
 		int previousLayerIdx = numberOfLayers-2;
@@ -354,6 +386,174 @@ public class Network {
 			double error = deltaC_vs_deltaA_j_L*sigmoidPrime;
 			errors[currentLayerIdx][j] = error;
 		}
+	}
+	
+	public void trainIterationBatch(double[][] instances, double[][] labels) throws InputException, IterationException {
+		prepareUpdate();
+		double[] iterationErrors = new double[labels[0].length];
+		for (int i = 0; i < instances.length; i++) {
+			double[] predictedLabelDistribution = feedForward(instances[i]);
+//			System.out.println("trainBatch, Instance " + i + " predicted label distribution: " + Arrays.toString(predictedLabelDistribution) + " actual label distribution " + Arrays.toString(labels[i]));
+		
+			for (int j = 0; j < labels[i].length; j++)
+				iterationErrors[j] += (labels[i][j]-predictedLabelDistribution[j])*(labels[i][j]-predictedLabelDistribution[j]);
+			
+			computeErrorsOfLastLayer(labels[i]);
+			
+			backpropagateError();
+
+//			printErrors();
+			
+			updateWeights();
+			
+//			System.out.println("Printing update_weights after instance " + i);
+//			printWeights();
+		}
+		double iterationErrorSum = 0;
+		for (double d : iterationErrors)
+			iterationErrorSum+=d;
+		System.out.println("current iterationErrorSum = " + iterationErrorSum);
+		
+//		System.out.print("Press any key for next iteration ...");
+//		try {
+//			System.in.read();
+//			System.out.println();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+		
+		double[] learningRates = new double[] {
+//				(10*learningRate) / (instances.length* 1),
+				learningRate / (instances.length* 1),
+//				learningRate / (instances.length* 25),
+				learningRate / (instances.length* 10),
+				learningRate / (instances.length* 100),
+//				learningRate / (instances.length* 1000),
+//				learningRate / (instances.length* 10000),
+		};
+		double[] localLearningRateErrors = new double[learningRates.length];
+		double minError = Double.MAX_VALUE;
+		double bestLearningRate = 0;
+		for (int i = 0; i < learningRates.length; i++) {
+			configureUpdate(learningRates[i]);
+			localLearningRateErrors[i] = computeError(instances, labels);
+			
+//			System.out.println("Error for i=" + i + ": " + localLearningRateErrors[i]);
+			if (localLearningRateErrors[i] < minError) {
+				minError=localLearningRateErrors[i];
+				bestLearningRate=learningRates[i];
+			}
+		}
+		System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
+		if (iterationErrorSum < minError) {
+			System.out.println("No way out! Cannot reduce error!");
+			resetUpdate();
+			throw new IterationException("Cannot reduce error any further!");
+		} else {
+			commitUpdate(bestLearningRate);
+		}
+	}
+	
+	public double computeError(double[][] instances, double[][] labels) throws InputException {
+		double[] iterationErrors = new double[labels[0].length];
+		for (int i = 0; i < instances.length; i++) {
+			double[] predictedLabelDistribution = feedForward(instances[i]);
+			for (int j = 0; j < labels[i].length; j++)
+				iterationErrors[j] += (labels[i][j] - predictedLabelDistribution[j])
+						* (labels[i][j] - predictedLabelDistribution[j]);
+			debug("iterationErrors = " + Arrays.toString(iterationErrors));
+		}
+		double iterationErrorSum = 0;
+		for (double d : iterationErrors)
+			iterationErrorSum += d;
+		debug("iterationErrorSum = " + iterationErrorSum);
+		return iterationErrorSum;
+
+	}
+	
+	private void printWeights() {
+
+		for (int l = 1; l < numberOfLayers /* exclude input layer */; l++) {
+			Node[] currentNodes = nodesList.get(Integer.valueOf(l));
+			for(int k = 0; k < currentNodes.length; k++) {
+				System.out.print("layer_" + l + "_node_" + k + "_" + Arrays.toString(((SigmoidNeuron) currentNodes[k]).updateWeights) + " ");				
+			}
+			System.out.println();
+		}
+		System.out.println();
+
+	}
+	private void printErrors() {
+		System.out.print("Printing errors ");
+
+		for (double[] error:errors)
+			System.out.print(Arrays.toString(error) + "--");
+		
+		System.out.println();
+	}
+	private void prepareUpdate() {
+		for (Node[] n1 : nodesList.values())
+			for (Node n : n1)
+				n.prepareUpdate();
+	}
+
+	private void configureUpdate(double myLearningRate) {
+		for (Node[] n1 : nodesList.values())
+			for (Node n : n1)
+				n.configureUpdate(myLearningRate);
+	}
+
+	private void commitUpdate(double myLearningRate) {
+		for (Node[] n1 : nodesList.values())
+			for (Node n : n1)
+				n.commitUpdate(myLearningRate);
+	}
+
+	
+	private void resetUpdate() {
+		for (Node[] n1 : nodesList.values())
+			for (Node n : n1)
+				n.resetUpdate();
+	}
+	
+	public double[] dumpDotGraph(double[] instance, PrintStream out) throws InputException {
+		double[] classification = feedForward(instance);
+		computeDotGraph(out);
+		return classification;
+	}
+	
+	public void trainBatch(double[][] instances, double[][] labels, int numIterations) throws InputException {
+	
+		int i=0;
+		while (i++ < numIterations) {
+			try {
+				trainIterationBatch(instances, labels);
+			} catch (IterationException e) {
+				System.out.println("Stopping iterations at iteration " + i + ", cannot reduce error any further!");
+				break;
+			}
+			
+			if (i % learningRateIterationAmount  == 0) {
+				learningRate *=learningRateIterationDecay;
+				debug("LearningRate is now " + learningRate);
+				
+				setLearningRate(learningRate);
+			}
+		}
+
+	}
+	public void setLearningRateMultiplier(int iterationNumber, double learningRateIterationDecay) {
+		this.learningRateIterationAmount = iterationNumber;
+		this.learningRateIterationDecay = learningRateIterationDecay;
+	}
+	public int getLearningRateIterationAmount() {
+		return learningRateIterationAmount;
+	}
+	public double getLearningRateIterationDecay() {
+		return learningRateIterationDecay;
+	}
+	public double getLearningRate() {
+		return learningRate;
 	}
 
 }

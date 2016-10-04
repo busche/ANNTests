@@ -1,5 +1,7 @@
 package net.brunel.nodes;
 
+import java.util.Random;
+
 public class InitializerHelper {
 
 	public static Initializer newConstantInitializer(int i) {
@@ -20,6 +22,11 @@ public class InitializerHelper {
 				return returnValue;
 			}
 		};
+	}
+
+	final static Random rnd = new Random();
+	public static Initializer newGaussianInitializer(int mean, int var) {
+		return (min,max)->{return (rnd.nextGaussian()+mean)*var;};
 	}
 
 }

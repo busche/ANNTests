@@ -1,5 +1,7 @@
 package net.brunel.nodes;
 
+import java.util.Arrays;
+
 import net.brunel.nodes.exceptions.InputDimensionMismatchException;
 import net.brunel.nodes.exceptions.InputException;
 
@@ -10,13 +12,20 @@ public class SigmoidNeuron implements Node, Function {
 
 	private double[] weights;
 	private double bias;
+	double[] updateWeights;
+	double updateBias;
+	private double configuredUpdateLearningRate;
+	private boolean useConfiguredUpdateLearningRate;
 
 	public SigmoidNeuron(int numberOfInputs, Initializer initializer) {
 		super();
 		weights = new double[numberOfInputs];
+		updateWeights = new double[numberOfInputs];
+		
 		for (int i = 0; i < numberOfInputs; i++)
 			weights[i] = initializer.nextDouble(INITIALIZATION_MINIMUM, INITIALIZATION_MAXIMUM);
 		bias = initializer.nextDouble(INITIALIZATION_MINIMUM, INITIALIZATION_MAXIMUM);
+		useConfiguredUpdateLearningRate=false;
 	}
 
 	/* (non-Javadoc)
@@ -27,9 +36,18 @@ public class SigmoidNeuron implements Node, Function {
 		if (input.length != weights.length)
 			throw new InputDimensionMismatchException(weights.length, input.length);
 
-		double dotProduct = MyMath.dotProduct(weights, input);
+		double localBias = bias;
+		double[] localWeightVector = weights;
+		if (useConfiguredUpdateLearningRate) {
+			localWeightVector = new double[weights.length];
+			System.arraycopy(weights, 0, localWeightVector, 0, weights.length);
+			for (int i = 0; i < weights.length; i++)
+				localWeightVector[i] = w(i);
+			localBias=b();
+		}
+		double dotProduct = MyMath.dotProduct(localWeightVector, input);
 
-		return computeAt(dotProduct + bias);
+		return computeAt(dotProduct + localBias);
 	}
 
 	@Override
@@ -39,22 +57,32 @@ public class SigmoidNeuron implements Node, Function {
 
 	@Override
 	public double w(int k) {
-		return weights[k];
+		double returnValue =  weights[k];
+		if (useConfiguredUpdateLearningRate) {
+			returnValue -= configuredUpdateLearningRate*updateWeights[k];
+		}
+		return returnValue;
 	}
 
 	@Override
 	public double b() {
-		return bias;
+		double returnValue =  bias;
+		if (useConfiguredUpdateLearningRate) {
+			returnValue -= configuredUpdateLearningRate*updateBias;
+		}
+		return returnValue;
+	}
+
+	
+	@Override
+	public void updateW(int dimension, double gradientValue) {
+		updateWeights[dimension] += gradientValue;
+//		System.out.println("update request for w(" + dimension + ") = " + gradientValue);
 	}
 
 	@Override
-	public void updateW(double learningRate, int dimension, double gradientValue) {
-		weights[dimension] -= learningRate*gradientValue;
-	}
-
-	@Override
-	public void updateB(double learningRate, double gradientValue) {
-		bias -= learningRate*gradientValue;
+	public void updateB(double gradientValue) {
+		updateBias +=gradientValue;
 	}
 
 	@Override
@@ -70,6 +98,35 @@ public class SigmoidNeuron implements Node, Function {
 	@Override
 	public double computeAt(double v) {
 		return MyMath.sigmoid(v);
+	}
+
+	@Override
+	public void prepareUpdate() {
+		
+	}
+
+	@Override
+	public void commitUpdate(double learningRate) {
+		for (int i = 0; i < weights.length; i++)
+			weights[i] -= learningRate*updateWeights[i];
+		bias -= learningRate * updateBias;
+		// reset values
+		Arrays.setAll(updateWeights, (a)->{return 0;});
+		updateBias=0;
+		this.useConfiguredUpdateLearningRate=false;
+	}
+
+	@Override
+	public void configureUpdate(double d) {
+		this.configuredUpdateLearningRate = d;
+		this.useConfiguredUpdateLearningRate = true;
+	}
+
+	@Override
+	public void resetUpdate() {
+		useConfiguredUpdateLearningRate=false;
+		Arrays.setAll(updateWeights, (a)->{return 0;});
+		updateBias=0;
 	}
 
 }

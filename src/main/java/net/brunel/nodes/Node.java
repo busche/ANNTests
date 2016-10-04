@@ -17,10 +17,23 @@ public interface Node {
 
 	double b();
 
-	void updateW(double learningRate, int dimension, double gradientValue);
+	void updateW(int dimension, double gradientValue);
 
-	void updateB(double learningRate, double gradientValue);
-
+	void updateB(double gradientValue);
+	
+	void prepareUpdate();
+	
+	void commitUpdate(double learningRate);
+	
 	Function getFunction();
+
+	/**
+	 * if updates have been prepared, internally use the updated weights but wait until the changes are actually committed. Helps to check different Learning rates.  
+	 * 
+	 * @param d
+	 */
+	void configureUpdate(double d);
+
+	void resetUpdate();
 
 }
