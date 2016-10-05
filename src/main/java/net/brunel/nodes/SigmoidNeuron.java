@@ -32,7 +32,7 @@ public class SigmoidNeuron implements Node, Function {
 	 * @see net.brunel.nodes.Node#compute(double[])
 	 */
 	@Override
-	public double computeOutput(double[] input) throws InputException {
+	public double computeNodeOutput(double[] input) throws InputException {
 		if (input.length != weights.length)
 			throw new InputDimensionMismatchException(weights.length, input.length);
 
@@ -49,6 +49,23 @@ public class SigmoidNeuron implements Node, Function {
 
 		return computeAt(dotProduct + localBias);
 	}
+	
+	@Override
+	public double computeDerivativeValue(double[] input) {
+		double localBias = bias;
+		double[] localWeightVector = weights;
+		if (useConfiguredUpdateLearningRate) {
+			localWeightVector = new double[weights.length];
+			System.arraycopy(weights, 0, localWeightVector, 0, weights.length);
+			for (int i = 0; i < weights.length; i++)
+				localWeightVector[i] = w(i);
+			localBias=b();
+		}
+		double dotProduct = MyMath.dotProduct(localWeightVector, input);
+
+		return computeDerivativeValue(dotProduct + localBias);
+	}
+
 
 	@Override
 	public double getWeightFromInput(int c) {
@@ -59,7 +76,7 @@ public class SigmoidNeuron implements Node, Function {
 	public double w(int k) {
 		double returnValue =  weights[k];
 		if (useConfiguredUpdateLearningRate) {
-			returnValue -= configuredUpdateLearningRate*updateWeights[k];
+			returnValue += configuredUpdateLearningRate*updateWeights[k];
 		}
 		return returnValue;
 	}
@@ -68,7 +85,7 @@ public class SigmoidNeuron implements Node, Function {
 	public double b() {
 		double returnValue =  bias;
 		if (useConfiguredUpdateLearningRate) {
-			returnValue -= configuredUpdateLearningRate*updateBias;
+			returnValue += configuredUpdateLearningRate*updateBias;
 		}
 		return returnValue;
 	}
@@ -91,7 +108,7 @@ public class SigmoidNeuron implements Node, Function {
 	}
 
 	@Override
-	public double computeDerivative(double v) {
+	public double computeDerivativeValue(double v) {
 		return MyMath.sigmoid(v)*(1-MyMath.sigmoid(v));
 	}
 
@@ -107,9 +124,12 @@ public class SigmoidNeuron implements Node, Function {
 
 	@Override
 	public void commitUpdate(double learningRate) {
-		for (int i = 0; i < weights.length; i++)
-			weights[i] -= learningRate*updateWeights[i];
-		bias -= learningRate * updateBias;
+		for (int i = 0; i < weights.length; i++) {
+//			System.out.print("weights[i] -= " + learningRate + "*" + updateWeights[i] + " ==> " + weights[i] + " -=  " + (learningRate*updateWeights[i]));
+			weights[i] += learningRate*updateWeights[i];
+//			System.out.println(" ==> weights[" + i + "] = " + weights[i]);
+		}
+		bias += learningRate * updateBias;
 		// reset values
 		Arrays.setAll(updateWeights, (a)->{return 0;});
 		updateBias=0;
@@ -128,5 +148,6 @@ public class SigmoidNeuron implements Node, Function {
 		Arrays.setAll(updateWeights, (a)->{return 0;});
 		updateBias=0;
 	}
+
 
 }

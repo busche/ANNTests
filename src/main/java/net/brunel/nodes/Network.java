@@ -22,7 +22,7 @@ public class Network {
 		}
 
 		@Override
-		public double computeOutput(double[] input) throws InputException {
+		public double computeNodeOutput(double[] input) throws InputException {
 			return value;
 		}
 
@@ -57,7 +57,7 @@ public class Network {
 		}
 
 		@Override
-		public double computeDerivative(double z_l_L) {
+		public double computeDerivativeValue(double z_l_L) {
 			return 0;
 		}
 
@@ -86,6 +86,12 @@ public class Network {
 			
 		}
 
+		@Override
+		public double computeDerivativeValue(double[] input) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+
 	}
 
 	private final int numberOfLayers;
@@ -110,6 +116,8 @@ public class Network {
 	private double learningRateIterationDecay = 0.995;
 	private boolean intelligentLearningRate;
 	private double discretizeThreshold=0.5;
+	private boolean printErrors;
+	private boolean printWeights;
 
 	private void debug(String string) {
 		if (debugOn)
@@ -175,7 +183,7 @@ public class Network {
 			
 			activations[l] = new double[currentLayer.length];
 			for (int j = 0; j < currentLayer.length; j++) {
-				activations[l][j] = currentLayer[j].computeOutput(activations[l-1]);
+				activations[l][j] = currentLayer[j].computeNodeOutput(activations[l-1]);
 			}
 			debug("layer " + (l) + "        output: " + Arrays.toString(activations[l]));
 		}
@@ -264,15 +272,17 @@ public class Network {
 		debug("Initial classification:       " + Arrays.toString(classificationResult));
 		debug("Initial classification error: " + Arrays.toString(classificationError));
 		
-		computeErrorsOfLastLayer(y);
+		computeErrorsOfLastLayer(instanceData, y);
 
 		backpropagateError();
+		
+		printErrors();
 		
 		updateWeights();
 		
 		commitUpdate(learningRate);
 		
-		debug("Errors:      " + Arrays.deepToString(errors));
+		printWeights();
 	}
 	
 	/*
@@ -324,7 +334,7 @@ public class Network {
 				
 				// right part
 				Node currentNode = currentLayer[j];
-				double z_l_L = currentNode.computeOutput(activations[previousLayerIdx]);
+				double z_l_L = currentNode.computeNodeOutput(activations[previousLayerIdx]);
 						
 				// left part
 				double errorContribution = 0;
@@ -345,7 +355,7 @@ public class Network {
 				 * we set "our" error to be the derivative of the current nodes activation times 
 				 * our errorContribution to the next layer
 				 */
-				errors[currentLayerIdx][j] = currentNode.getFunction().computeDerivative(z_l_L)*errorContribution;
+				errors[currentLayerIdx][j] = currentNode.getFunction().computeDerivativeValue(z_l_L)*errorContribution;
 				
 				debug("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
 			}
@@ -368,7 +378,7 @@ public class Network {
 		}
 	}
 	
-	private void computeErrorsOfLastLayer(double[] y) throws InputException {
+	private void computeErrorsOfLastLayer(double[] instance, double[] y) throws InputException {
 		int currentLayerIdx = numberOfLayers-1;
 		int previousLayerIdx = numberOfLayers-2;
 		Node[] currentLayer = nodesList.get(Integer.valueOf(currentLayerIdx));
@@ -376,17 +386,12 @@ public class Network {
 		initErrorArrayAtIndex(currentLayerIdx);
 
 		for (int j = 0; j < currentLayer.length; j++) {
-			double z_j_L =0;
 
 			Node currentNode = currentLayer[j];
-//			for (int k = 0; k < previousLayer.length; k++)
-//				z_j_L += currentNode.w(k)*activations[previousLayerIdx][k];
-//			z_j_L += currentNode.b();
-			z_j_L = currentNode.computeOutput(activations[previousLayerIdx]);
 			
-			double sigmoidPrime = currentNode.getFunction().computeDerivative(z_j_L);
-			double a_j_L =  currentNode.getFunction().computeAt(z_j_L);
-			double deltaC_vs_deltaA_j_L = lossFunction.computeDerivative(a_j_L, y[j]);
+			double sigmoidPrime = currentNode.computeDerivativeValue(activations[previousLayerIdx]);
+			double a_j_L =  currentNode.computeNodeOutput(activations[previousLayerIdx]);
+			double deltaC_vs_deltaA_j_L = lossFunction.computeDerivative(j, instance, y[j], a_j_L);
 			double error = deltaC_vs_deltaA_j_L*sigmoidPrime;
 			errors[currentLayerIdx][j] = error;
 		}
@@ -402,16 +407,15 @@ public class Network {
 			for (int j = 0; j < labels[i].length; j++)
 				iterationErrors[j] += (labels[i][j]-predictedLabelDistribution[j])*(labels[i][j]-predictedLabelDistribution[j]);
 			
-			computeErrorsOfLastLayer(labels[i]);
+			computeErrorsOfLastLayer(instances[i], labels[i]);
 			
 			backpropagateError();
 
-//			printErrors();
+			printErrors();
 			
 			updateWeights();
 			
-//			System.out.println("Printing update_weights after instance " + i);
-//			printWeights();
+			printWeights();
 		}
 //		double iterationErrorSum = 0;
 //		for (double d : iterationErrors)
@@ -465,34 +469,45 @@ public class Network {
 	}
 	
 	public double computeError(double[][] instances, double[][] labels) throws InputException {
-		double[] iterationErrors = new double[labels[0].length];
-		for (int i = 0; i < instances.length; i++) {
-			double[] predictedLabelDistribution = feedForward(instances[i]);
-			for (int j = 0; j < labels[i].length; j++)
-				iterationErrors[j] += lossFunction.computeValue(labels[i][j], predictedLabelDistribution[j]);
-			debug("iterationErrors = " + Arrays.toString(iterationErrors));
-		}
-		double iterationErrorSum = 0;
-		for (double d : iterationErrors)
-			iterationErrorSum += d;
-		debug("iterationErrorSum = " + iterationErrorSum);
-		return iterationErrorSum;
 
+		double[][] predictions = makePredictions(instances);
+		
+		double iterationErrorSum = lossFunction.computeLoss(labels, predictions);
+		
+		debug("iterationErrorSum = " + iterationErrorSum);
+
+		return iterationErrorSum;
+	}
+	
+	public double[][] makePredictions(double[][] instances) throws InputException {
+		double[][] predictions = new double[instances.length][];
+		for (int i = 0; i < instances.length; i++) {
+			predictions[i] = feedForward(instances[i]);
+		}
+		return predictions;
 	}
 	
 	private void printWeights() {
+		if (!printWeights) return;
 
 		for (int l = 1; l < numberOfLayers /* exclude input layer */; l++) {
 			Node[] currentNodes = nodesList.get(Integer.valueOf(l));
+			Node[] previousNodes = nodesList.get(Integer.valueOf(l-1));
 			for(int k = 0; k < currentNodes.length; k++) {
-				System.out.print("layer_" + l + "_node_" + k + "_" + Arrays.toString(((SigmoidNeuron) currentNodes[k]).updateWeights) + " ");				
+//				System.out.print("layer_" + l + "_node_" + k + "_" + Arrays.toString(((SigmoidNeuron) currentNodes[k]).updateWeights) + " ");
+				System.out.print("layer_" + l + "_node_" + k);
+				for (int j = 0; j < previousNodes.length; j++)
+					System.out.print("\tj=" + j + "; w=" + + currentNodes[k].w(j) + " ");				
+				System.out.println("\tb="+ currentNodes[k].b() + " ");
 			}
-			System.out.println();
 		}
 		System.out.println();
-
 	}
+	
 	private void printErrors() {
+		if (!printErrors)
+			return;
+		
 		System.out.print("Printing errors ");
 
 		for (double[] error:errors)
@@ -578,6 +593,24 @@ public class Network {
 				classification[i]=0;
 		}
 			
+	}
+	public boolean isPrintErrors() {
+		return printErrors;
+	}
+	public void setPrintErrors(boolean printErrors) {
+		this.printErrors = printErrors;
+	}
+	public boolean isPrintWeights() {
+		return printWeights;
+	}
+	public void setPrintWeights(boolean printWeights) {
+		this.printWeights = printWeights;
+	}
+	public LossFunction getLossFunction() {
+		return lossFunction;
+	}
+	public void setLossFunction(LossFunction lossFunction) {
+		this.lossFunction = lossFunction;
 	}
 
 }

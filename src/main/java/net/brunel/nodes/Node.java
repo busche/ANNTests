@@ -4,7 +4,7 @@ import net.brunel.nodes.exceptions.InputException;
 
 public interface Node {
 
-	double computeOutput(double[] input) throws InputException;
+	double computeNodeOutput(double[] acticationsOfPreviousLayer) throws InputException;
 
 	/**
 	 * the weight from source node c
@@ -35,5 +35,7 @@ public interface Node {
 	void configureUpdate(double d);
 
 	void resetUpdate();
+
+	double computeDerivativeValue(double[] input);
 
 }
