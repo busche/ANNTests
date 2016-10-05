@@ -347,11 +347,11 @@ public class NetworkTest {
 		}
 	}
 	
-//	@Test
+	@Test
 	public void testMiniDatasetOneLayerOneOutput() throws InputException {
 		Network n = new Network(2, 1); // 2 input dimensions, two layer
 		n.configureLayer(1, new SigmoidNeuron[] { 
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {10,10,0.5})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-1,0.5})),
 				});
 
 		double learningRate = 10;
@@ -367,24 +367,12 @@ public class NetworkTest {
 //		n.setPrintWeights(true);
 //		n.setLossFunction(LossFunctionHelper.CROSS_ENTROPY_LOSS);
 
-		while (i++ < 50) {
-			try {
-				n.trainIterationBatch(instances, labels);
-			} catch (IterationException e) {
-				System.out.println("Stopping iterations at iteration " + i + ", cannot reduce error any further!");
-				break;
-			}
-			
-			if (i % 1000 == 0) {
-				double computeError = n.computeError(instances, labels);
-				System.out.println("Error at " + i + ": " + computeError);
-			}
-		}
+		n.trainBatch(instances, labels, 750);
 		
 		for (int j = 0; j < instances.length; j++) {
 			classification = n.feedForward(instances[j]);
 			// this is needed as the labels do not really approach 0 and 1, but sth. likt 0.87 and 0.12
-//			n.discretize(classification);
+			n.discretize(classification);
 			assertArrayEquals(labels[j], classification, 0.05);
 		}
 	}

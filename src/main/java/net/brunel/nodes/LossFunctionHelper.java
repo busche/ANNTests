@@ -56,7 +56,6 @@ public class LossFunctionHelper {
 		@Override
 		public double computeDerivative(int component, double[] features, double actual, double predicted) {
 			double a = features[component] * (predicted-actual);
-			// TODO: Strange, it should not be necessary to multiply by -1 ...
 			return  a;
 		}
 
