@@ -126,10 +126,10 @@ public class SigmoidNeuron implements Node, Function {
 	public void commitUpdate(double learningRate) {
 		for (int i = 0; i < weights.length; i++) {
 //			System.out.print("weights[i] -= " + learningRate + "*" + updateWeights[i] + " ==> " + weights[i] + " -=  " + (learningRate*updateWeights[i]));
-			weights[i] += learningRate*updateWeights[i];
+			weights[i] -= learningRate*updateWeights[i];
 //			System.out.println(" ==> weights[" + i + "] = " + weights[i]);
 		}
-		bias += learningRate * updateBias;
+		bias -= learningRate * updateBias;
 		// reset values
 		Arrays.setAll(updateWeights, (a)->{return 0;});
 		updateBias=0;

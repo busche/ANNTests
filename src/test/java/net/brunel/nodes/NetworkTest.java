@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
@@ -326,14 +327,14 @@ public class NetworkTest {
 		
 //		n.setPrintWeights(true);
 		
-		while (i++ < 300) {
+		while (i++ < 3000) {
 			try {
 				n.trainIterationBatch(instances, labels);
 			} catch (IterationException e) {
 				System.out.println("Stopping iterations at iteration " + i + ", cannot reduce error any further!");
 				break;
 			}
-			if (i % 10 == 0) {
+			if (i % 100 == 0) {
 				classification = n.feedForward(instances[0]);
 				System.out.println(Arrays.toString(classification));
 
@@ -346,53 +347,63 @@ public class NetworkTest {
 		}
 	}
 	
-	@Test
-	public void testCrossEntropyBatchTrainingOneLayerTwoOutputs() throws InputException {
-		Network n = new Network(2, 2); // 2 input dimensions, two layer
+//	@Test
+	public void testMiniDatasetOneLayerOneOutput() throws InputException {
+		Network n = new Network(2, 1); // 2 input dimensions, two layer
 		n.configureLayer(1, new SigmoidNeuron[] { 
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-1,0.5})),
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0,-1,-0.5})),
-				});
-		n.configureLayer(2, new SigmoidNeuron[] { 
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {2,-2,-0.4})),
-				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {-1,1,0.1})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {10,10,0.5})),
 				});
 
-		double learningRate = 1;
+		double learningRate = 10;
 		n.setLearningRate(learningRate);
-		
-		double[][] instances = new double[][] {
-			new double[]{ -0.6, -1.7 },
-			new double[]{ 1.2, 0.3 },
-			new double[]{ 0.1, 0.8 },
-		};
-		double[][] labels = new double[][]{
-			new double[]{ 1,0 },
-			new double[]{ 1,0 },
-			new double[]{ 1,0},
-		};
+
+		double[][] instances = new double[50][];
+		double[][] labels = new double[50][];
+		createDiagonalData(instances, labels);
 		
 		int i = 0; 
 		double[] classification;
 //		n.setIntelligentLearningRate(true);
-		n.setPrintWeights(true);
-		n.setLossFunction(LossFunctionHelper.CROSS_ENTROPY_LOSS);
+//		n.setPrintWeights(true);
+//		n.setLossFunction(LossFunctionHelper.CROSS_ENTROPY_LOSS);
 
-		n.trainBatch(instances, labels, 500);
-
-		classification = n.feedForward(instances[0]);
-		System.out.print("Iteration " + i + " Classification 0: " + Arrays.toString(classification));
-		classification = n.feedForward(instances[1]);
-		System.out.print(" C 1: " + Arrays.toString(classification));
-		classification = n.feedForward(instances[2]);
-		System.out.print(" C 2: " + Arrays.toString(classification));
-		System.out.println();
-
+		while (i++ < 50) {
+			try {
+				n.trainIterationBatch(instances, labels);
+			} catch (IterationException e) {
+				System.out.println("Stopping iterations at iteration " + i + ", cannot reduce error any further!");
+				break;
+			}
+			
+			if (i % 1000 == 0) {
+				double computeError = n.computeError(instances, labels);
+				System.out.println("Error at " + i + ": " + computeError);
+			}
+		}
+		
 		for (int j = 0; j < instances.length; j++) {
 			classification = n.feedForward(instances[j]);
 			// this is needed as the labels do not really approach 0 and 1, but sth. likt 0.87 and 0.12
 //			n.discretize(classification);
 			assertArrayEquals(labels[j], classification, 0.05);
+		}
+	}
+
+	private void createDiagonalData(double[][] instances, double[][] labels) {
+		Random r = new Random(100);
+		
+		for (int i = 0; i < instances.length; i++) {
+			instances[i] = new double[2];
+			labels[i] = new double[1];
+
+			// x
+			instances[i][0] = r.nextGaussian();
+			// y
+			instances[i][1] = -1 * r.nextGaussian();
+			
+			labels[i][0] = instances[i][0]+instances[i][1];
+			labels[i][0] = (labels[i][0]>0?1:0);
+//			System.out.println(String.format("%1$f %2$f %3$f", instances[i][0], instances[i][1], labels[i][0]));
 		}
 	}
 	

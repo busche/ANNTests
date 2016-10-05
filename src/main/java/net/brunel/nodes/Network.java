@@ -424,9 +424,9 @@ public class Network {
 			printErrors();
 			
 			updateWeights();
-			
-			printWeights();
 		}
+		
+		printWeights();
 //		double iterationErrorSum = 0;
 //		for (double d : iterationErrors)
 //			iterationErrorSum+=d;
@@ -441,7 +441,7 @@ public class Network {
 //		}
 		
 		double minError = Double.MAX_VALUE;
-		double bestLearningRate = learningRate;
+		double bestLearningRate = learningRate / instances.length;
 		
 		if (intelligentLearningRate) {
 			double[] learningRates = new double[] {
@@ -466,7 +466,7 @@ public class Network {
 			}
 //			System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
 		} else {
-			configureUpdate(learningRate);
+			configureUpdate(bestLearningRate);
 			minError=computeError(instances, labels);
 		}
 		

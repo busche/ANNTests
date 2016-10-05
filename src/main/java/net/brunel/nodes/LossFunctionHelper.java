@@ -1,7 +1,5 @@
 package net.brunel.nodes;
 
-import java.util.Arrays;
-
 public class LossFunctionHelper {
 
 	private static class MSELossFunction implements LossFunction {
@@ -11,7 +9,7 @@ public class LossFunctionHelper {
 
 		@Override
 		public double computeDerivative(int component, double[] features, double actualLabel, double predictedLabel) {
-			return (actualLabel - predictedLabel);
+			return (predictedLabel-actualLabel);
 		}
 
 		public double computeSingleLoss(double actual, double predicted) {
@@ -45,7 +43,8 @@ public class LossFunctionHelper {
 				iterationErrorSum  += computeLoss(labels[i], predictions[i]);
 			}
 //			debug("iterationErrorSum = " + iterationErrorSum);
-			return iterationErrorSum;
+//			return iterationErrorSum / (double)labels.length;
+			return iterationErrorSum ;
 		}
 
 	}
@@ -58,7 +57,7 @@ public class LossFunctionHelper {
 		public double computeDerivative(int component, double[] features, double actual, double predicted) {
 			double a = features[component] * (predicted-actual);
 			// TODO: Strange, it should not be necessary to multiply by -1 ...
-			return -1 * a;
+			return  a;
 		}
 
 		
