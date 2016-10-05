@@ -123,7 +123,8 @@ public class Network {
 		activations = new double[this.numberOfLayers][];
 		activations[0] = new double[inputDimension];
 		errors = new double[this.numberOfLayers][];
-		lossFunction = (a,b) -> {return a-b;};
+//		lossFunction = (a,b) -> {return (a-b)*(a-b);};
+		lossFunction = LossFunctionHelper.MSE_LOSS;
 		intelligentLearningRate=false;
 		
 		Node[] inputLayer = new Node[inputDimension];
@@ -384,7 +385,7 @@ public class Network {
 			
 			double sigmoidPrime = currentNode.getFunction().computeDerivative(z_j_L);
 			double a_j_L =  currentNode.getFunction().computeAt(z_j_L);
-			double deltaC_vs_deltaA_j_L = lossFunction.computeLoss(a_j_L, y[j]);
+			double deltaC_vs_deltaA_j_L = lossFunction.computeDerivative(a_j_L, y[j]);
 			double error = deltaC_vs_deltaA_j_L*sigmoidPrime;
 			errors[currentLayerIdx][j] = error;
 		}
@@ -424,9 +425,10 @@ public class Network {
 //			e.printStackTrace();
 //		}
 		
+		double minError = Double.MAX_VALUE;
+		double bestLearningRate = learningRate;
+		
 		if (intelligentLearningRate) {
-			
-			
 			double[] learningRates = new double[] {
 	//				(10*learningRate) / (instances.length* 1),
 					learningRate / (instances.length* 1),
@@ -437,8 +439,6 @@ public class Network {
 	//				learningRate / (instances.length* 10000),
 			};
 			double[] localLearningRateErrors = new double[learningRates.length];
-			double minError = Double.MAX_VALUE;
-			double bestLearningRate = 0;
 			for (int i = 0; i < learningRates.length; i++) {
 				configureUpdate(learningRates[i]);
 				localLearningRateErrors[i] = computeError(instances, labels);
@@ -450,16 +450,17 @@ public class Network {
 				}
 			}
 			System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
-			if (iterationErrorSum < minError) {
-				System.out.println("No way out! Cannot reduce error!");
-				resetUpdate();
-				throw new IterationException("Cannot reduce error any further!");
-			} 
-			commitUpdate(bestLearningRate);
 		} else {
-			commitUpdate(learningRate);
-			
+			configureUpdate(learningRate);
+			minError=computeError(instances, labels);
 		}
+		
+//		if (iterationErrorSum < minError) {
+//			System.out.println("No way out! Cannot reduce error!");
+//			resetUpdate();
+//			throw new IterationException("Cannot reduce error any further!");
+//		} 
+		commitUpdate(bestLearningRate);
 	}
 	
 	public double computeError(double[][] instances, double[][] labels) throws InputException {
@@ -467,8 +468,7 @@ public class Network {
 		for (int i = 0; i < instances.length; i++) {
 			double[] predictedLabelDistribution = feedForward(instances[i]);
 			for (int j = 0; j < labels[i].length; j++)
-				iterationErrors[j] += (labels[i][j] - predictedLabelDistribution[j])
-						* (labels[i][j] - predictedLabelDistribution[j]);
+				iterationErrors[j] += lossFunction.computeValue(labels[i][j], predictedLabelDistribution[j]);
 			debug("iterationErrors = " + Arrays.toString(iterationErrors));
 		}
 		double iterationErrorSum = 0;
@@ -562,6 +562,12 @@ public class Network {
 	}
 	public double getLearningRate() {
 		return learningRate;
+	}
+	public boolean isIntelligentLearningRate() {
+		return intelligentLearningRate;
+	}
+	public void setIntelligentLearningRate(boolean intelligentLearningRate) {
+		this.intelligentLearningRate = intelligentLearningRate;
 	}
 
 }

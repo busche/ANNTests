@@ -198,7 +198,7 @@ public class NetworkTest {
 
 	@Test
 	public void testBatchTrainingOneLayerTwoOutputs() throws InputException {
-		Network n = new Network(2, 2); // 2 input dimensions, one layer
+		Network n = new Network(2, 2); // 2 input dimensions, two layer
 //		n.setDebugOn(true);
 //		n.setComputeDotGraph(true);
 		n.configureLayer(1, new SigmoidNeuron[] { 
@@ -210,7 +210,7 @@ public class NetworkTest {
 				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {-1,1,0})),
 				});
 
-		double learningRate = 0.1;
+		double learningRate = 0.05;
 		n.setLearningRate(learningRate);
 		double[][] instances = new double[][] {
 			new double[]{ 1, 0 },
@@ -272,5 +272,62 @@ public class NetworkTest {
 			assertArrayEquals(labels[j], classification, 0.05);
 		}
 	}
+	
+	@Test
+	public void testTrainSingleNode() throws InputException {
+		Network n = new Network(1, 1); // 2 input dimensions, one layer
+//		n.setDebugOn(true);
+		n.setComputeDotGraph(true);
+		n.configureLayer(1, new SigmoidNeuron[] { 
+				new SigmoidNeuron(1, InitializerHelper.newCircularInitializer(new double[] {0.6,0.9,0})),
+				});
+
+		double learningRate = 0.15;
+		n.setLearningRate(learningRate);
+		double[][] instances = new double[][] {
+			new double[]{ 1},
+//			new double[]{ 0},
+		};
+		double[][] labels = new double[][]{
+			new double[]{ 0},
+//			new double[]{ 1},
+		};
+		
+		int i = 0; 
+		double[] classification;
+		double previousError = 0;
+		n.setLearningRateMultiplier(10000, 1);
+		
+		while (i++ < 300) {
+//			System.out.println("Iteration " + i);
+//			try {
+				n.train(instances[0], labels[0]);
+//			} catch (IterationException e) {
+//				e.printStackTrace();
+//				break;
+//			}
+			
+			if (i % 5 == 0) {
+				classification = n.feedForward(instances[0]);
+				System.out.print("Iteration " + i + " Classification 0: " + Arrays.toString(classification));
+//				classification = n.feedForward(instances[1]);
+//				System.out.print(" C 1: " + Arrays.toString(classification));
+				System.out.println();
+			}
+			
+			if (i % 500 == 0) {
+				System.out.println("Error at iteration " + i + ": " + n.computeError(instances, labels));
+			}
+
+		}
+		
+		for (int j = 0; j < instances.length; j++) {
+//			classification = n.dumpDotGraph(instances[j], System.out);
+			classification = n.feedForward(instances[j]);
+			
+			assertArrayEquals(labels[j], classification, 0.05);
+		}
+	}
+	
 }
 
