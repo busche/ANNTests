@@ -109,6 +109,7 @@ public class Network {
 	private int learningRateIterationAmount = 100;
 	private double learningRateIterationDecay = 0.995;
 	private boolean intelligentLearningRate;
+	private double discretizeThreshold=0.5;
 
 	private void debug(String string) {
 		if (debugOn)
@@ -412,10 +413,10 @@ public class Network {
 //			System.out.println("Printing update_weights after instance " + i);
 //			printWeights();
 		}
-		double iterationErrorSum = 0;
-		for (double d : iterationErrors)
-			iterationErrorSum+=d;
-		System.out.println("current iterationErrorSum = " + iterationErrorSum);
+//		double iterationErrorSum = 0;
+//		for (double d : iterationErrors)
+//			iterationErrorSum+=d;
+//		System.out.println("current iterationErrorSum = " + iterationErrorSum);
 		
 //		System.out.print("Press any key for next iteration ...");
 //		try {
@@ -435,7 +436,7 @@ public class Network {
 	//				learningRate / (instances.length* 25),
 					learningRate / (instances.length* 10),
 					learningRate / (instances.length* 100),
-	//				learningRate / (instances.length* 1000),
+					learningRate / (instances.length* 1000),
 	//				learningRate / (instances.length* 10000),
 			};
 			double[] localLearningRateErrors = new double[learningRates.length];
@@ -449,7 +450,7 @@ public class Network {
 					bestLearningRate=learningRates[i];
 				}
 			}
-			System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
+//			System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
 		} else {
 			configureUpdate(learningRate);
 			minError=computeError(instances, labels);
@@ -568,6 +569,15 @@ public class Network {
 	}
 	public void setIntelligentLearningRate(boolean intelligentLearningRate) {
 		this.intelligentLearningRate = intelligentLearningRate;
+	}
+	public void discretize(double[] classification) {
+		for(int i = 0; i < classification.length; i++) {
+			if (classification[i] > discretizeThreshold)
+				classification[i]=1;
+			else
+				classification[i]=0;
+		}
+			
 	}
 
 }
