@@ -16,6 +16,8 @@ public class SigmoidNeuron implements Node, Function {
 	double updateBias;
 	private double configuredUpdateLearningRate;
 	private boolean useConfiguredUpdateLearningRate;
+	private int configuredUpdateDatasetSize;
+	private double lambda=0.0;
 
 	public SigmoidNeuron(int numberOfInputs, Initializer initializer) {
 		super();
@@ -76,9 +78,22 @@ public class SigmoidNeuron implements Node, Function {
 	public double w(int k) {
 		double returnValue =  weights[k];
 		if (useConfiguredUpdateLearningRate) {
+			double oldWeight = returnValue;
 			returnValue += configuredUpdateLearningRate*updateWeights[k];
+			returnValue = addWeightRegularizationFactor(returnValue, oldWeight);
 		}
 		return returnValue;
+	}
+
+	private double addWeightRegularizationFactor(double returnValue, double weight) {
+		return addWeightRegularizationFactor(returnValue, weight, configuredUpdateLearningRate, configuredUpdateDatasetSize);
+//		return returnValue - ((configuredUpdateLearningRate * lambda) / (configuredUpdateDatasetSize)) * (weight);
+	}
+
+	private double addWeightRegularizationFactor(double returnValue, double weight, double learningRate, int datasetsize) {
+		if (lambda<=0) return returnValue;
+		
+		return returnValue - ((learningRate * lambda) / (datasetsize)) * (weight);
 	}
 
 	@Override
@@ -123,10 +138,13 @@ public class SigmoidNeuron implements Node, Function {
 	}
 
 	@Override
-	public void commitUpdate(double learningRate) {
+	public void commitUpdate(double learningRate, int datasetsize) {
 		for (int i = 0; i < weights.length; i++) {
 //			System.out.print("weights[i] -= " + learningRate + "*" + updateWeights[i] + " ==> " + weights[i] + " -=  " + (learningRate*updateWeights[i]));
+			double oldWeight = weights[i];
 			weights[i] -= learningRate*updateWeights[i];
+			weights[i] = addWeightRegularizationFactor(weights[i], oldWeight, learningRate, datasetsize);
+
 //			System.out.println(" ==> weights[" + i + "] = " + weights[i]);
 		}
 		bias -= learningRate * updateBias;
@@ -137,8 +155,9 @@ public class SigmoidNeuron implements Node, Function {
 	}
 
 	@Override
-	public void configureUpdate(double d) {
+	public void configureUpdate(double d, int datasetsize) {
 		this.configuredUpdateLearningRate = d;
+		this.configuredUpdateDatasetSize = datasetsize;
 		this.useConfiguredUpdateLearningRate = true;
 	}
 
@@ -146,7 +165,16 @@ public class SigmoidNeuron implements Node, Function {
 	public void resetUpdate() {
 		useConfiguredUpdateLearningRate=false;
 		Arrays.setAll(updateWeights, (a)->{return 0;});
+		configuredUpdateDatasetSize=0;
 		updateBias=0;
+	}
+
+	public double getLambda() {
+		return lambda;
+	}
+
+	public void setLambda(double lambda) {
+		this.lambda = lambda;
 	}
 
 

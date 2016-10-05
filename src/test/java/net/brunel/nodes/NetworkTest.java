@@ -395,5 +395,58 @@ public class NetworkTest {
 		}
 	}
 	
+	@Test
+	public void testTrainSingleNodeWithRegularization() throws InputException {
+		Network n = new Network(1, 2); // input dimension, layer
+//		n.setDebugOn(true);
+//		n.setComputeDotGraph(true);
+		SigmoidNeuron[] layer1 = new SigmoidNeuron[] { 
+				new SigmoidNeuron(1, InitializerHelper.newCircularInitializer(new double[] {-0.6,-0.9})),
+				};
+		SigmoidNeuron[] layer2 = new SigmoidNeuron[] { 
+				new SigmoidNeuron(1, InitializerHelper.newCircularInitializer(new double[] {0.6, 0.9,0})),
+				};
+		double lambda=0.1;
+		double learningRate = 0.05;
+
+		layer1[0].setLambda(lambda);
+		layer2[0].setLambda(lambda);
+		n.configureLayer(1, layer1);
+		n.configureLayer(2, layer2);
+
+		n.setLearningRate(learningRate);
+		double[][] instances = new double[][] {
+			new double[]{ 1},
+		};
+		double[][] labels = new double[][]{
+			new double[]{ 0},
+		};
+		
+		double[] classification;
+		n.setPrintWeights(true);
+		
+		int i=0;
+		while (i++ < 6000) {
+			try {
+				n.trainIterationBatch(instances, labels);
+			} catch (IterationException e) {
+				System.out.println("Stopping iterations at iteration " + i + ", cannot reduce error any further!");
+				break;
+			}
+			
+			if (i % 10 == 0) {
+				classification = n.feedForward(instances[0]);
+//				System.out.println("Classification:" + Arrays.toString(classification));
+				System.out.println("Error:          " + n.computeError(instances, labels));
+			}
+			
+		}
+		
+		for (int j = 0; j < instances.length; j++) {
+			classification = n.feedForward(instances[j]);
+			
+			assertArrayEquals(labels[j], classification, 0.05);
+		}
+	}
 }
 

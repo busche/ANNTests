@@ -71,11 +71,11 @@ public class Network {
 		}
 
 		@Override
-		public void commitUpdate(double learningRate) {
+		public void commitUpdate(double learningRate, int datasetsize) {
 		}
 
 		@Override
-		public void configureUpdate(double d) {
+		public void configureUpdate(double d, int datasetsize) {
 			// TODO Auto-generated method stub
 			
 		}
@@ -280,7 +280,7 @@ public class Network {
 		
 		updateWeights();
 		
-		commitUpdate(learningRate);
+		commitUpdate(learningRate, 1);
 		
 		printWeights();
 	}
@@ -455,7 +455,7 @@ public class Network {
 			};
 			double[] localLearningRateErrors = new double[learningRates.length];
 			for (int i = 0; i < learningRates.length; i++) {
-				configureUpdate(learningRates[i]);
+				configureUpdate(learningRates[i], instances.length);
 				localLearningRateErrors[i] = computeError(instances, labels);
 				
 	//			System.out.println("Error for i=" + i + ": " + localLearningRateErrors[i]);
@@ -466,7 +466,7 @@ public class Network {
 			}
 //			System.out.println("Best error is " + minError + " in array " + Arrays.toString(localLearningRateErrors));
 		} else {
-			configureUpdate(bestLearningRate);
+			configureUpdate(bestLearningRate, instances.length);
 			minError=computeError(instances, labels);
 		}
 		
@@ -475,7 +475,7 @@ public class Network {
 //			resetUpdate();
 //			throw new IterationException("Cannot reduce error any further!");
 //		} 
-		commitUpdate(bestLearningRate);
+		commitUpdate(bestLearningRate, instances.length);
 	}
 	
 	public double computeError(double[][] instances, double[][] labels) throws InputException {
@@ -531,16 +531,16 @@ public class Network {
 				n.prepareUpdate();
 	}
 
-	private void configureUpdate(double myLearningRate) {
+	private void configureUpdate(double myLearningRate, int datasetsize) {
 		for (Node[] n1 : nodesList.values())
 			for (Node n : n1)
-				n.configureUpdate(myLearningRate);
+				n.configureUpdate(myLearningRate, datasetsize);
 	}
 
-	private void commitUpdate(double myLearningRate) {
+	private void commitUpdate(double myLearningRate, int datasetsize) {
 		for (Node[] n1 : nodesList.values())
 			for (Node n : n1)
-				n.commitUpdate(myLearningRate);
+				n.commitUpdate(myLearningRate, datasetsize);
 	}
 
 	

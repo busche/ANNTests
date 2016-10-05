@@ -23,7 +23,7 @@ public interface Node {
 	
 	void prepareUpdate();
 	
-	void commitUpdate(double learningRate);
+	void commitUpdate(double learningRate, int datasetsize);
 	
 	Function getFunction();
 
@@ -32,7 +32,7 @@ public interface Node {
 	 * 
 	 * @param d
 	 */
-	void configureUpdate(double d);
+	void configureUpdate(double d, int datasetsize);
 
 	void resetUpdate();
 
