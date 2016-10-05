@@ -219,7 +219,7 @@ public class NetworkTest {
 		double[][] labels = new double[][]{
 			new double[]{ 1,0 },
 			new double[]{ 1,0},
-			new double[]{ 0,0 },
+			new double[]{ 0,1 },
 		};
 		
 		int i = 0; 
@@ -345,5 +345,56 @@ public class NetworkTest {
 			assertArrayEquals(labels[j], classification, 0.05);
 		}
 	}
+	
+	@Test
+	public void testCrossEntropyBatchTrainingOneLayerTwoOutputs() throws InputException {
+		Network n = new Network(2, 2); // 2 input dimensions, two layer
+		n.configureLayer(1, new SigmoidNeuron[] { 
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {1,-1,0.5})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {0,-1,-0.5})),
+				});
+		n.configureLayer(2, new SigmoidNeuron[] { 
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {2,-2,-0.4})),
+				new SigmoidNeuron(2, InitializerHelper.newCircularInitializer(new double[] {-1,1,0.1})),
+				});
+
+		double learningRate = 1;
+		n.setLearningRate(learningRate);
+		
+		double[][] instances = new double[][] {
+			new double[]{ -0.6, -1.7 },
+			new double[]{ 1.2, 0.3 },
+			new double[]{ 0.1, 0.8 },
+		};
+		double[][] labels = new double[][]{
+			new double[]{ 1,0 },
+			new double[]{ 1,0 },
+			new double[]{ 1,0},
+		};
+		
+		int i = 0; 
+		double[] classification;
+//		n.setIntelligentLearningRate(true);
+		n.setPrintWeights(true);
+		n.setLossFunction(LossFunctionHelper.CROSS_ENTROPY_LOSS);
+
+		n.trainBatch(instances, labels, 500);
+
+		classification = n.feedForward(instances[0]);
+		System.out.print("Iteration " + i + " Classification 0: " + Arrays.toString(classification));
+		classification = n.feedForward(instances[1]);
+		System.out.print(" C 1: " + Arrays.toString(classification));
+		classification = n.feedForward(instances[2]);
+		System.out.print(" C 2: " + Arrays.toString(classification));
+		System.out.println();
+
+		for (int j = 0; j < instances.length; j++) {
+			classification = n.feedForward(instances[j]);
+			// this is needed as the labels do not really approach 0 and 1, but sth. likt 0.87 and 0.12
+//			n.discretize(classification);
+			assertArrayEquals(labels[j], classification, 0.05);
+		}
+	}
+	
 }
 

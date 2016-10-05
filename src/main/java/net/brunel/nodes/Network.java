@@ -355,7 +355,17 @@ public class Network {
 				 * we set "our" error to be the derivative of the current nodes activation times 
 				 * our errorContribution to the next layer
 				 */
-				errors[currentLayerIdx][j] = currentNode.getFunction().computeDerivativeValue(z_l_L)*errorContribution;
+//				errors[currentLayerIdx][j] = currentNode.getFunction().computeDerivativeValue(z_l_L)*errorContribution; 
+				/*
+				 * the updates given in the reference implementation, namely 
+				 * 
+				 * delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
+				 * nabla_b[-l] = delta
+				 * nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
+				 * 
+				 * can be found in #updateWeights()
+				 */
+				errors[currentLayerIdx][j] = currentNode.computeDerivativeValue(activations[previousLayerIdx])*errorContribution;
 				
 				debug("Layer " + currentLayerIdx + ", Node " + j + ", z_l_L=" + z_l_L + " errorContribution=" + errorContribution );
 			}
